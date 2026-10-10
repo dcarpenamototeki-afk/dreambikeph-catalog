@@ -9,3 +9,6 @@
 
 /* Keep the inventory count together instead of distributing each text fragment. */
 .inventory-meta{display:block}.inventory-meta>span{float:right}
+
+/* Keep each admin action compact and on one line. */
+.admin-grid aside article .admin-row-actions{display:flex!important;flex:0 0 auto;flex-direction:row!important;flex-wrap:nowrap;align-items:center;justify-content:flex-end}.admin-grid aside article .admin-row-actions button{width:auto!important;margin:0;white-space:nowrap}
