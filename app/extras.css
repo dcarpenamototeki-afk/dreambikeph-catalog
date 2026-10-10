@@ -6,3 +6,6 @@
 
 /* Cursor-following close-up for the motorcycle detail photo. */
 .gallery-stage{cursor:crosshair}.zoom-lens{position:absolute;z-index:4;width:175px;height:175px;border:2px solid #ffc400;border-radius:50%;pointer-events:none;background-repeat:no-repeat;background-size:600%;box-shadow:0 9px 30px #000c;transform:translate(-50%,-50%)}.gallery-control{z-index:5}.detail-title span{color:#ffc400;margin-right:.24em}.detail-tags{display:flex;gap:8px;flex-wrap:wrap;margin:-12px 0 16px}.detail-tags span{padding:5px 8px;border:1px solid #ffffff26;color:#d9dadd;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.detail-tags .available{border-color:#2fc878;color:#6ee9a4}.detail-tags .reserved{border-color:#ef3d4c;color:#ff8992}@media(max-width:620px){.zoom-lens{display:none}}
+
+/* Keep the inventory count together instead of distributing each text fragment. */
+.inventory-meta{display:block}.inventory-meta>span{float:right}
