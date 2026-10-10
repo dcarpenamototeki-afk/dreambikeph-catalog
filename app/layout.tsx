@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Anton, Manrope } from "next/font/google";
 import "./globals.css";
+import "./extras.css";
 
 const display = Anton({ subsets: ["latin"], weight: "400", variable: "--font-display", display: "swap" });
 const body = Manrope({ subsets: ["latin"], variable: "--font-body", display: "swap" });
