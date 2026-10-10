@@ -12,3 +12,4 @@
 
 /* Keep each admin action compact and on one line. */
 .admin-grid aside article .admin-row-actions{display:flex!important;flex:0 0 auto;flex-direction:row!important;flex-wrap:nowrap;align-items:center;justify-content:flex-end}.admin-grid aside article .admin-row-actions button{width:auto!important;margin:0;white-space:nowrap}
+.admin-grid aside .delete-action{border-color:#d83845;color:#c52f3c}.admin-grid aside .delete-action:hover{background:#d83845;color:#fff}
