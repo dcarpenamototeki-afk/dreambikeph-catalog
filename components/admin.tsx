@@ -1,15 +1,103 @@
 "use client";
+
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { blankItem, categories, type CatalogItem } from "@/lib/catalog";
 import { browserSupabase } from "@/lib/supabase";
 
+const adminStyles = `
+  .admin-page input:not([type="checkbox"]), .admin-page select, .admin-page textarea { width: 100%; min-height: 44px; padding: 11px 12px; border: 1px solid #aeb2b9; border-radius: 3px; background: #f8f9fb; color: #151515; outline: 0; box-shadow: inset 0 1px 2px #1111110d; }
+  .admin-page input:focus, .admin-page select:focus, .admin-page textarea:focus { border-color: #d3a900; box-shadow: 0 0 0 3px #ffc40033; }
+  .admin-page textarea { min-height: 104px; resize: vertical; }
+  .admin-grid { grid-template-columns: minmax(390px, .9fr) 1.1fr; }
+  .admin-grid form, .admin-grid aside { gap: 16px; padding: 27px; box-shadow: 0 7px 22px #11111109; }
+  .admin-grid h2 { margin-bottom: 0; }
+  .form-hint { margin: 0; color: #62676f; font-size: 12px; line-height: 1.55; }
+  .admin-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .admin-toggles { display: flex; flex-wrap: wrap; gap: 12px 22px; padding: 4px 0; }
+  .admin-toggles label { display: flex !important; align-items: center; gap: 8px; }
+  .admin-toggles input { width: 17px !important; min-height: auto !important; accent-color: #d3a900; }
+  .file-input { padding: 9px !important; background: #f5f5f5 !important; cursor: pointer; }
+  .admin-grid small { color: #686d74; font-size: 10px; font-weight: 600; text-transform: none; }
+  .photo-preview { height: 210px; border: 1px solid #d7d8d8; background-position: center; background-size: cover; display: flex; align-items: end; padding: 12px; }
+  .photo-preview span { padding: 6px 8px; background: #151515; color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+  .form-message { min-height: 18px; margin: 0; color: #177d49; font-size: 12px; }
+  @media(max-width: 620px) { .admin-pair { grid-template-columns: 1fr; } }
+`;
+
 export function Admin() {
-  const [items, setItems] = useState<CatalogItem[]>([]); const [form, setForm] = useState(blankItem); const [editId, setEditId] = useState<string | null>(null); const [message, setMessage] = useState("Checking login..."); const [ready, setReady] = useState(false);
+  const [items, setItems] = useState<CatalogItem[]>([]);
+  const [form, setForm] = useState(blankItem);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [message, setMessage] = useState("Checking login...");
+  const [ready, setReady] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((current) => ({ ...current, [key]: value }));
-  useEffect(() => { const client = browserSupabase(); client.auth.getSession().then(({ data }) => { if (!data.session) { location.href = "/login?next=%2Fadmin"; return; } setReady(true); setMessage(""); load(data.session.access_token); }); }, []);
-  async function load(token?: string) { const current = token ?? (await browserSupabase().auth.getSession()).data.session?.access_token; const response = await fetch("/api/catalog?scope=admin", { headers: current ? { Authorization: `Bearer ${current}` } : {} }); const body = await response.json(); if (!response.ok) { setMessage(body.error ?? "Unable to load catalog"); return; } setItems(body.data ?? []); }
-  async function save(event: FormEvent) { event.preventDefault(); const token = (await browserSupabase().auth.getSession()).data.session?.access_token; const response = await fetch(editId ? `/api/catalog/${editId}` : "/api/catalog", { method: editId ? "PATCH" : "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(form) }); const body = await response.json(); if (!response.ok) { setMessage(body.error ?? "Unable to save item"); return; } setMessage(editId ? "Changes saved." : "New motorcycle added."); setForm(blankItem); setEditId(null); load(); }
+
+  useEffect(() => {
+    const client = browserSupabase();
+    client.auth.getSession().then(({ data }) => {
+      if (!data.session) { location.href = "/login?next=%2Fadmin"; return; }
+      setReady(true); setMessage(""); load(data.session.access_token);
+    });
+  }, []);
+
+  async function load(token?: string) {
+    const current = token ?? (await browserSupabase().auth.getSession()).data.session?.access_token;
+    const response = await fetch("/api/catalog?scope=admin", { headers: current ? { Authorization: `Bearer ${current}` } : {} });
+    const body = await response.json();
+    if (!response.ok) { setMessage(body.error === "Unauthorized" ? "Unauthorized: check ALLOWED_USER_UIDS in .env.local, then restart the server." : body.error ?? "Unable to load catalog"); return; }
+    setItems(body.data ?? []);
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    const token = (await browserSupabase().auth.getSession()).data.session?.access_token;
+    const response = await fetch(editId ? `/api/catalog/${editId}` : "/api/catalog", {
+      method: editId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(form),
+    });
+    const body = await response.json();
+    if (!response.ok) { setMessage(body.error === "Unauthorized" ? "Unauthorized: check ALLOWED_USER_UIDS in .env.local, then restart the server." : body.error ?? "Unable to save item"); return; }
+    setMessage(editId ? "Changes saved." : "New motorcycle added."); setForm(blankItem); setEditId(null); load();
+  }
+
+  async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
+    const image = event.target.files?.[0]; if (!image) return;
+    const token = (await browserSupabase().auth.getSession()).data.session?.access_token;
+    if (!token) { setMessage("Your session has expired. Please log in again."); return; }
+    const data = new FormData(); data.append("image", image); setUploading(true); setMessage("Uploading image...");
+    try {
+      const response = await fetch("/api/upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: data });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error ?? "Upload failed");
+      set("image_url", body.url); setMessage("Photo uploaded. You can now save the motorcycle.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to upload image"); }
+    finally { setUploading(false); event.target.value = ""; }
+  }
+
   if (!ready) return <main className="admin-page"><p>{message}</p></main>;
-  return <main className="admin-page"><header><h1>Catalog manager</h1><div><Link href="/catalog">View catalog</Link><button onClick={() => browserSupabase().auth.signOut().then(() => location.href = "/login")}>Log out</button></div></header><section className="admin-grid"><form onSubmit={save}><h2>{editId ? "Edit motorcycle" : "Add motorcycle"}</h2><label>Unit title<input required value={form.title} onChange={(e) => set("title", e.target.value)} /></label><label>Brand<input value={form.brand} onChange={(e) => set("brand", e.target.value)} /></label><label>Category<select value={form.category} onChange={(e) => set("category", e.target.value)}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Year model<input value={form.year_model} onChange={(e) => set("year_model", e.target.value)} /></label><label>Odometer km<input type="number" value={form.odometer_km ?? ""} onChange={(e) => set("odometer_km", e.target.value ? Number(e.target.value) : null)} /></label><label>Cash price<input type="number" value={form.cash_price ?? ""} onChange={(e) => set("cash_price", e.target.value ? Number(e.target.value) : null)} /></label><label>Swapping value<input type="number" value={form.swapping_value ?? ""} onChange={(e) => set("swapping_value", e.target.value ? Number(e.target.value) : null)} /></label><label>Photo URL<input type="url" value={form.image_url} onChange={(e) => set("image_url", e.target.value)} /></label><label>Notes<textarea value={form.condition_notes} onChange={(e) => set("condition_notes", e.target.value)} /></label><label><input checked={form.is_available} type="checkbox" onChange={(e) => set("is_available", e.target.checked)} /> Available</label><label><input checked={form.is_published} type="checkbox" onChange={(e) => set("is_published", e.target.checked)} /> Show on public catalog</label><button>{editId ? "Save changes" : "Add item"}</button><p>{message}</p></form><aside><h2>All motorcycles</h2>{items.map((item) => <article key={item.id}><div><b>{item.title}</b><span>{item.is_published && item.is_available ? "Live" : "Draft"}</span></div><button onClick={() => { const { id, ...values } = item; setForm(values); setEditId(id); }}>Edit</button></article>)}</aside></section></main>;
+
+  return <main className="admin-page"><style>{adminStyles}</style>
+    <header><h1>Catalog manager</h1><div><Link href="/catalog">View catalog</Link><button onClick={() => browserSupabase().auth.signOut().then(() => location.href = "/login")}>Log out</button></div></header>
+    <section className="admin-grid">
+      <form onSubmit={save}>
+        <h2>{editId ? "Edit motorcycle" : "Add motorcycle"}</h2>
+        <p className="form-hint">Fields marked with * are required. Upload one clear photo of the actual unit.</p>
+        <label>Unit title *<input required placeholder="e.g. Yamaha NMAX 155" value={form.title} onChange={(e) => set("title", e.target.value)} /></label>
+        <label>Brand<input placeholder="e.g. Yamaha" value={form.brand} onChange={(e) => set("brand", e.target.value)} /></label>
+        <label>Category<select value={form.category} onChange={(e) => set("category", e.target.value)}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+        <div className="admin-pair"><label>Year model<input placeholder="e.g. 2023" value={form.year_model} onChange={(e) => set("year_model", e.target.value)} /></label><label>Odometer (km)<input type="number" min="0" placeholder="e.g. 7800" value={form.odometer_km ?? ""} onChange={(e) => set("odometer_km", e.target.value ? Number(e.target.value) : null)} /></label></div>
+        <div className="admin-pair"><label>Cash price<input type="number" min="0" placeholder="e.g. 125000" value={form.cash_price ?? ""} onChange={(e) => set("cash_price", e.target.value ? Number(e.target.value) : null)} /></label><label>Swapping value<input type="number" min="0" placeholder="e.g. 110000" value={form.swapping_value ?? ""} onChange={(e) => set("swapping_value", e.target.value ? Number(e.target.value) : null)} /></label></div>
+        <label>Motorcycle photo<input className="file-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} disabled={uploading} /><small>JPG, PNG, or WEBP · maximum 8 MB</small></label>
+        {form.image_url && <div className="photo-preview" style={{ backgroundImage: `url(${form.image_url})` }}><span>Photo ready</span></div>}
+        <label>Notes<textarea placeholder="Condition, included accessories, or important details" value={form.condition_notes} onChange={(e) => set("condition_notes", e.target.value)} /></label>
+        <div className="admin-toggles"><label><input checked={form.is_available} type="checkbox" onChange={(e) => set("is_available", e.target.checked)} /> Available now</label><label><input checked={form.is_published} type="checkbox" onChange={(e) => set("is_published", e.target.checked)} /> Show on public catalog</label></div>
+        <button disabled={uploading}>{uploading ? "Uploading photo..." : editId ? "Save changes" : "Add item"}</button>
+        <p className={message.includes("Unauthorized") ? "form-message error" : "form-message"}>{message}</p>
+      </form>
+      <aside><h2>All motorcycles</h2>{items.length ? items.map((item) => <article key={item.id}><div><b>{item.title}</b><span>{item.is_published && item.is_available ? "Live" : "Draft"}</span></div><button onClick={() => { const { id, ...values } = item; setForm(values); setEditId(id); }}>Edit</button></article>) : <p className="form-hint">No units yet. Add your first motorcycle using the form.</p>}</aside>
+    </section>
+  </main>;
 }
