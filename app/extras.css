@@ -13,3 +13,6 @@
 /* Keep each admin action compact and on one line. */
 .admin-grid aside article .admin-row-actions{display:flex!important;flex:0 0 auto;flex-direction:row!important;flex-wrap:nowrap;align-items:center;justify-content:flex-end}.admin-grid aside article .admin-row-actions button{width:auto!important;margin:0;white-space:nowrap}
 .admin-grid aside .delete-action{border-color:#d83845;color:#c52f3c}.admin-grid aside .delete-action:hover{background:#d83845;color:#fff}
+
+/* Desktop gallery stays one stable size; photos only fit inside it. */
+.gallery-modal{width:min(1400px,calc(100vw - 40px));height:min(760px,calc(100svh - 40px));max-height:calc(100svh - 40px);grid-template-columns:minmax(0,1.25fr) minmax(420px,.75fr);overflow:hidden}.gallery-stack{display:flex;flex-direction:column;height:100%}.gallery-stage{width:100%;height:460px;min-height:460px;flex:0 0 460px}.gallery-modal>div:last-child{min-height:0;overflow-y:auto}@media(max-width:900px){.gallery-modal{width:min(760px,calc(100vw - 40px));height:auto;overflow:auto}.gallery-stack{height:auto}.gallery-stage{flex-basis:auto}}
