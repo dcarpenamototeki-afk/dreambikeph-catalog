@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, CalendarDays, CheckCircle2, Gauge, MapPin, MessageCircle, Phone, RotateCcw, SlidersHorizontal, UsersRound, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckCircle2, Gauge, MapPin, Menu, MessageCircle, Phone, RotateCcw, SlidersHorizontal, UsersRound, X } from "lucide-react";
 import type { CatalogItem } from "@/lib/catalog";
 import { peso } from "@/lib/catalog";
 
@@ -15,7 +15,10 @@ const fullName = (item: Pick<CatalogItem, "title" | "brand">) => item.brand && !
 
 function Logo({ intro = false }: { intro?: boolean }) { return <span className={`logo ${intro ? "intro-logo" : ""}`} aria-label="Dreambike PH"><Image style={{ filter: "none", mixBlendMode: "normal" }} src="/dreambike-mark-white.png" width={394} height={321} alt="" /><Image style={{ filter: "none", mixBlendMode: "normal" }} src="/dreambike-wordmark-white.png" width={556} height={115} alt="Dreambike PH" /></span>; }
 function Intro() { const [show, setShow] = useState(true); useEffect(() => { const timer = setTimeout(() => setShow(false), 2200); return () => clearTimeout(timer); }, []); return show ? <div className="intro"><i /><div><Logo intro /><p>YOUR NEXT RIDE AWAITS</p></div></div> : null; }
-function Nav({ current }: { current: "home" | "catalog" | "contact" | "reserve" }) { return <header><Link href="/" className="brand"><Logo /></Link><nav><Link className={current === "home" ? "active" : ""} href="/">Home</Link><Link className={current === "catalog" ? "active" : ""} href="/catalog">Catalog</Link><Link className={current === "reserve" ? "active" : ""} href="/reserve">Reserve a unit</Link><Link className={current === "contact" ? "active" : ""} href="/contact">Contact us</Link><a className="checker" href="https://dreambike-tracker.onrender.com/" target="_blank" rel="noreferrer">ORCR / Plate checker <ArrowUpRight size={14} /></a><Link className="admin-link" href="/login?next=%2Fadmin">Admin access</Link></nav></header>; }
+function Nav({ current }: { current: "home" | "catalog" | "contact" | "reserve" }) {
+  const [open, setOpen] = useState(false); const close = () => setOpen(false);
+  return <header className={open ? "menu-open" : ""}><Link href="/" className="brand" onClick={close}><Logo /></Link><button className="menu-toggle" type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-controls="site-navigation">{open ? <X size={19} /> : <Menu size={19} />}<span>{open ? "Close" : "Menu"}</span></button><nav id="site-navigation" className={open ? "open" : ""}><Link onClick={close} className={current === "home" ? "active" : ""} href="/">Home</Link><Link onClick={close} className={current === "catalog" ? "active" : ""} href="/catalog">Catalog</Link><Link onClick={close} className={current === "reserve" ? "active" : ""} href="/reserve">Reserve a unit</Link><Link onClick={close} className={current === "contact" ? "active" : ""} href="/contact">Contact us</Link><a className="checker" href="https://dreambike-tracker.onrender.com/" target="_blank" rel="noreferrer">ORCR / Plate checker <ArrowUpRight size={14} /></a><Link onClick={close} className="admin-link" href="/login?next=%2Fadmin">Admin access</Link></nav></header>;
+}
 function Footer() { return <footer><Logo /><span>Pre-owned motorcycles, direct service, and a ride worth remembering.</span><a href={messenger} target="_blank" rel="noreferrer">Message DreambikePH <ArrowUpRight size={15} /></a></footer>; }
 
 function VisitorCounter() {
