@@ -27,7 +27,8 @@ export async function POST(request: Request) {
 
     await ensureCatalogImageBucket();
     const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    const path = `motorcycles/${crypto.randomUUID()}.${extension}`;
+    const folder = form.get("folder") === "banners" ? "banners" : "motorcycles";
+    const path = `${folder}/${crypto.randomUUID()}.${extension}`;
     const { error } = await serverSupabase().storage.from("catalog-images").upload(path, await file.arrayBuffer(), { contentType: file.type, cacheControl: "31536000", upsert: false });
     if (error) throw error;
     const { data } = serverSupabase().storage.from("catalog-images").getPublicUrl(path);
